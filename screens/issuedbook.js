@@ -3,36 +3,51 @@ import { Text, View, StyleSheet, TextInput, TouchableOpacity, Alert } from 'reac
 import DatePicker from 'react-native-date-picker';
 import firestore from '@react-native-firebase/firestore';
 
-function IssuedBookScreen({ route }) {
-  const { bookName, authorName } = route.params.bookDetails;
+function IssuedBookScreen({ route, navigation }) {
+  const { id, bookName, authorName, quantity } = route.params.bookDetails; // Add `id` and `quantity`
   const [student, setStudent] = useState('');
   const [date, setDate] = useState(new Date());
 
   const handleIssue = async () => {
     if (student.trim() === '') {
-      Alert.alert( 'Fill the student name');
+      Alert.alert('Fill the student name');
       return;
     }
 
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Clear the time part of the date
+    today.setHours(0, 0, 0, 0);
 
     if (date < today) {
-      Alert.alert( 'Date cannot be in the past');
+      Alert.alert('Date cannot be in the past');
+      return;
+    }
+
+    if (quantity <= 0) {
+      Alert.alert('This book is currently out of stock');
       return;
     }
 
     try {
+      // Add issued book entry to the `issuedbook` collection
       await firestore().collection('issuedbook').add({
         bookName,
         authorName,
         student,
-        date
+        date,
       });
+
+      // Update the book quantity in the `books` collection
+      await firestore().collection('books').doc(id).update({
+        quantity: quantity - 1,
+      });
+
       Alert.alert('Success', 'Book issued successfully!');
-      setStudent(''); // Clear the student input box
+      setStudent(''); // Clear the student input
+
+      // Navigate back to refresh the available books screen
+      navigation.navigate('Available Book');
     } catch (error) {
-      console.error("Error adding document: ", error);
+      console.error("Error issuing book: ", error);
       Alert.alert('Error', 'Failed to issue book.');
     }
   };
@@ -63,7 +78,6 @@ function IssuedBookScreen({ route }) {
           date={date}
           onDateChange={setDate}
           minimumDate={new Date()} // Set the minimum date to today
-         
         />
       </View>
       <TouchableOpacity style={styles.button} onPress={handleIssue}>
@@ -79,11 +93,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-    backgroundColor:"lightblue" 
+    backgroundColor: "lightblue"
   },
-  
   dateWrapper: {
-    
     borderRadius: 10,
     padding: 5,
     margin: 10,
@@ -98,18 +110,17 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   buttontext: {
-    color:"black",
-    fontWeight:"bold",
-    fontSize:30,
-    paddingVertical:10,
-    paddingHorizontal:20,
+    color: "black",
+    fontWeight: "bold",
+    fontSize: 30,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
   },
   button: {
-   borderColor:"black",
-   borderWidth:2,
-borderRadius:20
+    borderColor: "black",
+    borderWidth: 2,
+    borderRadius: 20
   }
 });
 
 export default IssuedBookScreen;
-

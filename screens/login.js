@@ -1,27 +1,35 @@
 import React, { useState } from 'react';
-import { View, TextInput, TouchableOpacity, Text, StyleSheet, Alert, ImageBackground } from 'react-native';
+import { View, TextInput, TouchableOpacity, Text, StyleSheet, Alert, ImageBackground, ActivityIndicator } from 'react-native';
 import auth from '@react-native-firebase/auth';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
+    setLoading(true);
     try {
       await auth().signInWithEmailAndPassword(email, password);
       setEmail("");
       setPassword("");
       navigation.navigate('Home');
     } catch (error) {
-      if (error.code === 'auth/invalid-email') {
-        Alert.alert('Invalid Email', 'The email address is badly formatted.');
-      } else if (error.code === 'auth/user-not-found') {
-        Alert.alert('User Not Found', 'There is no user corresponding to this email.');
-      } else if (error.code === 'auth/wrong-password') {
-        Alert.alert('Incorrect Password', 'The password is incorrect.');
-      } else {
-        Alert.alert('Login Error', error.message);
+      switch (error.code) {
+        case 'auth/invalid-email':
+          Alert.alert('Invalid Email', 'The email address is badly formatted.');
+          break;
+        case 'auth/user-not-found':
+          Alert.alert('User Not Found', 'No user found with this email.');
+          break;
+        case 'auth/wrong-password':
+          Alert.alert('Incorrect Password', 'The password is incorrect.');
+          break;
+        default:
+          Alert.alert('Login Error', error.message);
       }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -39,7 +47,7 @@ const LoginScreen = ({ navigation }) => {
         <View style={styles.container}>
           <TextInput
             placeholder="Email"
-            placeholderTextColor={"black"}
+            placeholderTextColor="black"
             onChangeText={text => setEmail(text)}
             value={email}
             style={styles.input}
@@ -48,14 +56,18 @@ const LoginScreen = ({ navigation }) => {
           />
           <TextInput
             placeholder="Password"
-            placeholderTextColor={"black"}
+            placeholderTextColor="black"
             onChangeText={text => setPassword(text)}
             value={password}
             secureTextEntry
             style={styles.input}
           />
-          <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-            <Text style={styles.loginButtonText}>Login</Text>
+          <TouchableOpacity style={styles.loginButton} onPress={handleLogin} disabled={loading}>
+            {loading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text style={styles.loginButtonText}>Login</Text>
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity onPress={handleCreateAccount}>
@@ -124,3 +136,5 @@ const styles = StyleSheet.create({
 });
 
 export default LoginScreen;
+
+

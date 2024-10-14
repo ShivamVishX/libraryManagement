@@ -1,21 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ActivityIndicator, FlatList, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, ActivityIndicator, FlatList, StyleSheet, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 
-const listofbookScreen = ({ navigation, route }) => {
+const ListOfBookScreen = ({ navigation, route }) => {
   const [myData, setMyData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     getData();
   }, []);
 
   const getData = async () => {
+    setLoading(true); // Show loader on initial load
     try {
       const data = await firestore().collection("issuedbook").get();
       const books = data.docs.map(doc => {
         const docData = doc.data();
-        // Convert Firestore Timestamp to Date string
         if (docData.date && docData.date.toDate) {
           docData.date = docData.date.toDate().toLocaleString();
         }
@@ -32,7 +33,13 @@ const listofbookScreen = ({ navigation, route }) => {
     }
   };
 
-  const handleDelete = (id) => {
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await getData();
+    setRefreshing(false);
+  };
+
+  const handleDelete = (id, bookName) => {
     Alert.alert(
       'Confirm Deposit',
       'Do you want to deposit this book?',
@@ -47,8 +54,20 @@ const listofbookScreen = ({ navigation, route }) => {
             try {
               await firestore().collection('issuedbook').doc(id).delete();
               setMyData(myData.filter(item => item.id !== id));
+
+              const bookRef = await firestore()
+                .collection('books')
+                .where('bookName', '==', bookName)
+                .get();
+
+              if (!bookRef.empty) {
+                const bookDoc = bookRef.docs[0];
+                await bookDoc.ref.update({
+                  quantity: bookDoc.data().quantity + 1,
+                });
+              }
             } catch (error) {
-              console.error(error);
+              console.error("Error updating book quantity: ", error);
             }
           },
         },
@@ -80,12 +99,15 @@ const listofbookScreen = ({ navigation, route }) => {
             </View>
             <TouchableOpacity
               style={styles.button}
-              onPress={() => handleDelete(item.id)}
+              onPress={() => handleDelete(item.id, item.bookName)}
             >
               <Text style={styles.buttonText}>Deposit Book</Text>
             </TouchableOpacity>
           </View>
         )}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       />
     </View>
   );
@@ -146,4 +168,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default listofbookScreen;
+export default ListOfBookScreen;

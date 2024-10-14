@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@mohalla-tech/react-native-date-time-picker": "^2.0.1",
+    "@react-native-async-storage/async-storage": "^2.0.0",
     "@react-native-community/checkbox": "^0.5.17",
     "@react-native-firebase/app": "^20.1.0",
     "@react-native-firebase/auth": "^20.1.0",

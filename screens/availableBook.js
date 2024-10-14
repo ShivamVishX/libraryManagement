@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ActivityIndicator, FlatList, StyleSheet, Alert } from 'react-native';
+import { View, Text, ActivityIndicator, FlatList, StyleSheet, Alert, RefreshControl } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import CheckBox from '@react-native-community/checkbox';
+import { useFocusEffect } from '@react-navigation/native'; // Import useFocusEffect
 
-const AvailBooksScreen = ({ navigation, route }) => {
+const AvailBooksScreen = ({ navigation }) => {
   const [myData, setMyData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [checkedItems, setCheckedItems] = useState({});
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     getData();
@@ -24,7 +26,13 @@ const AvailBooksScreen = ({ navigation, route }) => {
       console.log(error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    getData();
   };
 
   const handleCheckBoxChange = (id, value, bookDetails) => {
@@ -45,7 +53,6 @@ const AvailBooksScreen = ({ navigation, route }) => {
           {
             text: 'OK',
             onPress: () => {
-              bookDetails.quantity = bookDetails.quantity - 1;
               navigation.navigate('Issued book', {
                 bookDetails
               });
@@ -56,6 +63,17 @@ const AvailBooksScreen = ({ navigation, route }) => {
       );
     }
   };
+
+  // Function to reset checked items
+  const resetCheckedItems = () => {
+    setCheckedItems({});
+  };
+
+  useFocusEffect(
+    React.useCallback(() => {
+      resetCheckedItems(); // Reset checkboxes when the screen is focused
+    }, [])
+  );
 
   if (loading) {
     return (
@@ -85,6 +103,13 @@ const AvailBooksScreen = ({ navigation, route }) => {
             />
           </View>
         )}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#9Bd35A', '#689F38']}
+          />
+        }
       />
     </View>
   );
